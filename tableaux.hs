@@ -11,7 +11,7 @@ form :: Formula
 form = p
 
 -- main = prova(form)([p])
-main = printFormula(simplifica(Not (Or(Not p)(q)) ))
+main = printFormula(simplifica(Not (And p q) ))
 
 data Variavel = Nome String
 
@@ -34,7 +34,8 @@ demorgan (Or formula1 formula2) = And (Not formula1) (Not formula2)
 
 simplifica :: Formula -> Formula
 simplifica (Not (Not formula)) = formula
-simplifica (Not formula) = demorgan(formula)
+simplifica (Not (And formula1 formula2)) = demorgan(And formula1 formula2)
+simplifica (Not (Or formula1 formula2)) = demorgan(Or formula1 formula2)
 simplifica (Implicacao formula1 formula2) = implicacao(formula1)(formula2)
 simplifica (formula) = formula  -- se cheguei aqui, já tá simplificado
 

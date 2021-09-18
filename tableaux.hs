@@ -11,7 +11,7 @@ form :: Formula
 form = p
 
 -- main = prova(form)([p])
-main = printFormula(simplifica(Not (And p q) ))
+main = printFormula(Implicacao p q)
 
 data Variavel = Nome String
 
@@ -23,7 +23,7 @@ data Formula =
     Or Formula Formula |
     Implicacao Formula Formula
 
-implicacao :: (Formula) -> (Formula) -> Formula
+implicacao :: Formula -> Formula -> Formula
 implicacao (formula1)(formula2) = Or (Not formula1) (formula2)
 
 
@@ -39,7 +39,7 @@ simplifica (Not (Or formula1 formula2)) = demorgan(Or formula1 formula2)
 simplifica (Implicacao formula1 formula2) = implicacao(formula1)(formula2)
 simplifica (formula) = formula  -- se cheguei aqui, já tá simplificado
 
-temAbsurdo :: ([Formula]) -> Variavel -> Bool
+temAbsurdo :: [Formula] -> Variavel -> Bool
 temAbsurdo ([Var variavel])(Nome nome) = False
 -- temAbsurdo ([Not formula])(Nome nome) = not temAbsurdo([formula])(nome)
 temAbsurdo ([_])(Nome nome) = False
@@ -68,6 +68,13 @@ printFormula (Or formula1 formula2) = do
     putStr("(")
     printFormula(formula1)
     putStr(" | ")
+    printFormula(formula2)
+    putStr(")")
+
+printFormula (Implicacao formula1 formula2) = do
+    putStr("(")
+    printFormula(formula1)
+    putStr(" -> ")
     printFormula(formula2)
     putStr(")")
 

@@ -7,6 +7,17 @@ b :: Formula
 b = Var $ Nome "b"
 
 main = printArvore (prova (Implicacao a (Implicacao a (Implicacao b a))))
+-- form = (Not (Or (Not a) (Implicacao b a)))
+-- main = do
+--     printFormula (simplifica(form))
+--     putStrLn(" ")
+--     printFormula (form)
+--     putStrLn(" ")
+--     printBool (formulaEqual(simplifica(form)) (form))
+
+boolToStr :: Bool -> String
+boolToStr True = "True"
+boolToStr False = "False"
 
 data Variavel = Nome String
 
@@ -129,7 +140,7 @@ formulaToStr(Implicacao formula1 formula2) = "("++formulaToStr formula1++" -> " 
 
 
 nodeToStr :: Node -> String
-nodeToStr(Node formula _ _) = formulaToStr formula
+nodeToStr(Node formula rf p) = formulaToStr formula ++boolToStr rf ++boolToStr p
 
 arvoreNivelToStrAux :: Arvore -> String
 arvoreNivelToStrAux (NodeIntermediario node _ _) = "["++nodeToStr node++"]"
@@ -177,19 +188,32 @@ prova :: Formula -> Arvore
 prova formula = provaAux(NodeIntermediario (Node (Not formula) False False) Null Null)
 
 provaAux :: Arvore -> Arvore
+
+-- Entra nessa função se o nó não foi processado nem fechado e a fórmula pode ser simplificada
 provaAux (NodeIntermediario (Node formula False False) e d)
     | not(formulaEqual formula (simplifica formula)) = 
         provaAux (insereNode1 a (Node (simplifica formula) False False)) where
             a = NodeIntermediario (Node formula False True) e d
 
+-- Daqui em diante já não existe nenhuma regra de simplificação aplicável à fórmula
+
+-- Se for um and, eu coloco um nó abaixo do outro
 provaAux (NodeIntermediario (Node (And formula1 formula2) False False) e d) = 
     provaAux(insereNode1 a1 (Node formula2 False False)) where
         a1 =insereNode1 a (Node formula1 False False) where
             a = NodeIntermediario (Node (And formula1 formula2) False True) e d
 
+-- Se for um or, eu coloco um nó em cada ramo
 provaAux (NodeIntermediario (Node (Or formula1 formula2) False False) e d) =
     provaAux(insereNode2 a (Node formula1 False False) (Node formula2 False False)) where
         a = NodeIntermediario (Node (And formula1 formula2) False True) e d
 
+-- Se a fórmula for uma variável ou a negação de uma variável, só considero como processada e sigo em frente
+provaAux (NodeIntermediario (Node (Var var) False False) e d) = provaAux (NodeIntermediario (Node (Var var) False True) e d)
+provaAux (NodeIntermediario (Node (Not (Var var)) False False) e d) = provaAux (NodeIntermediario (Node (Not (Var var)) False True) e d)
+
+-- Se eu chamar a função para um nó que já foi processado, eu processo os seus ramos à esquerda ou direita
 provaAux (NodeIntermediario (Node formula False True) e d) = NodeIntermediario (Node formula False True) (provaAux e) (provaAux d)
-provaAux arvore = arvore
+
+-- Só chega aqui se for Null ou NodeFechado, ou seja, nada a ser feito para eles
+provaAux a = a

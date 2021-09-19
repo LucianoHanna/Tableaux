@@ -6,8 +6,7 @@ a = Var $ Nome "a"
 b :: Formula
 b = Var $ Nome "b"
 
--- main = printArvore (prova (Implicacao a (Implicacao a (Implicacao b a))))
-main = printArvore (prova (Not (Not (Implicacao a (Implicacao a (Implicacao b a))))))
+main = printArvore (prova (Implicacao a (Implicacao a (Implicacao b a))))
 
 data Variavel = Nome String
 
@@ -179,14 +178,18 @@ prova formula = provaAux(NodeIntermediario (Node (Not formula) False False) Null
 
 provaAux :: Arvore -> Arvore
 provaAux (NodeIntermediario (Node formula False False) e d)
-    | not(formulaEqual formula (simplifica formula)) = provaDireitaAux y where
-        y = provaEsquerdaAux x where x = insereNode1 (NodeIntermediario (Node formula False True) e d) (Node (simplifica(formula)) False False)
+    | not(formulaEqual formula (simplifica formula)) = 
+        provaAux (insereNode1 a (Node (simplifica formula) False False)) where
+            a = NodeIntermediario (Node formula False True) e d
+
+provaAux (NodeIntermediario (Node (And formula1 formula2) False False) e d) = 
+    provaAux(insereNode1 a1 (Node formula2 False False)) where
+        a1 =insereNode1 a (Node formula1 False False) where
+            a = NodeIntermediario (Node (And formula1 formula2) False True) e d
+
+provaAux (NodeIntermediario (Node (Or formula1 formula2) False False) e d) =
+    provaAux(insereNode2 a (Node formula1 False False) (Node formula2 False False)) where
+        a = NodeIntermediario (Node (And formula1 formula2) False True) e d
+
+provaAux (NodeIntermediario (Node formula False True) e d) = NodeIntermediario (Node formula False True) (provaAux e) (provaAux d)
 provaAux arvore = arvore
-
-provaEsquerdaAux :: Arvore -> Arvore
-provaEsquerdaAux (NodeIntermediario n e d) = NodeIntermediario n (provaAux e) d
-provaEsquerdaAux a = a
-
-provaDireitaAux :: Arvore -> Arvore
-provaDireitaAux (NodeIntermediario n e d) = NodeIntermediario n e (provaAux d)
-provaDireitaAux a = a

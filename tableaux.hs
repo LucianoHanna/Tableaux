@@ -1,22 +1,13 @@
 import Data.Typeable
 
-p :: Formula
-p = Var $ Nome "p"
+a :: Formula
+a = Var $ Nome "a"
 
-q :: Formula
-q = Var $ Nome "q"
+b :: Formula
+b = Var $ Nome "b"
 
-form :: Formula
-form = p
-
-arvore :: Arvore
-arvore = NodeIntermediario (Node p False False) Null Null
-arvore1 = insereNode1 arvore (Node q False False)
-arvore2 = insereNode2 arvore1 (Node q False False) (Node p False False)
-arvore3 = insereNode1 arvore2 (Node q False False)
--- main = prova(form)([p])
--- main = printFormula(Implicacao p q)
-main = printArvore arvore3
+-- main = printArvore (prova (Implicacao a (Implicacao a (Implicacao b a))))
+main = printArvore (prova (Not (Not (Implicacao a (Implicacao a (Implicacao b a))))))
 
 data Variavel = Nome String
 
@@ -63,6 +54,7 @@ simplifica (Not (Not formula)) = formula
 simplifica (Not (And formula1 formula2)) = demorgan(And formula1 formula2)
 simplifica (Not (Or formula1 formula2)) = demorgan(Or formula1 formula2)
 simplifica (Implicacao formula1 formula2) = implicacao formula1(formula2)
+simplifica (Not (Implicacao formula1 formula2)) = Not(implicacao formula1(formula2))
 simplifica formula = formula  -- se cheguei aqui, já tá simplificado
 
 -- temAbsurdo :: [Formula] -> Variavel -> Bool
@@ -89,15 +81,15 @@ printArvore a =
 arvoreStrPossuiNoNotNull :: String -> Bool -> Bool
 arvoreStrPossuiNoNotNull (x:xs) haveNonParentese
     | haveNonParentese = True
-    | otherwise = arvoreStrPossuiNoNotNull xs (not(isParentese x ))
+    | otherwise = arvoreStrPossuiNoNotNull xs (not(isBracket x ))
 
 arvoreStrPossuiNoNotNull [] haveNonParentese = haveNonParentese
 
 
-isParentese :: Char -> Bool
-isParentese '(' = True
-isParentese ')' = True
-isParentese x = False
+isBracket :: Char -> Bool
+isBracket '[' = True
+isBracket ']' = True
+isBracket x = False
 
 printArvoreAux :: Arvore -> Int -> IO()
 printArvoreAux a nivelDesejado = do
@@ -141,11 +133,11 @@ nodeToStr :: Node -> String
 nodeToStr(Node formula _ _) = formulaToStr formula
 
 arvoreNivelToStrAux :: Arvore -> String
-arvoreNivelToStrAux (NodeIntermediario node _ _) = "("++nodeToStr node++")"
+arvoreNivelToStrAux (NodeIntermediario node _ _) = "["++nodeToStr node++"]"
 
-arvoreNivelToStrAux NodeFechado = "(X)"
+arvoreNivelToStrAux NodeFechado = "[X]"
 
-arvoreNivelToStrAux Null = "()"
+arvoreNivelToStrAux Null = "[]"
 
 -- Essa função vai estar inserindo em todas as folhas visto que devo aplicar a fórmula em todas as folhas
 insereNode1 :: Arvore -> Node -> Arvore
@@ -160,14 +152,41 @@ insereArvore Null a1 a2 = Null
 insereArvore NodeFechado a1 a2 = NodeFechado
 insereArvore (NodeIntermediario node e d) a1 a2 = NodeIntermediario node (insereArvore e a1 a2) (insereArvore d a1 a2)
 
--- prova :: Formula -> [Formula] -> IO()
--- prova (Var variavel) ([]) = do
---     printVariavel(variavel)
+fechaNodesAbaixo :: Arvore -> Arvore
+-- se for "folha"
+fechaNodesAbaixo (NodeIntermediario (Node formula ramoFechado processado) Null Null) = NodeIntermediario (Node formula True processado) NodeFechado Null
+-- se for nó intermediário
+fechaNodesAbaixo (NodeIntermediario (Node formula ramoFechado processado) e d) = NodeIntermediario (Node formula True processado) (fechaNodesAbaixo e)  (fechaNodesAbaixo d)
+fechaNodesAbaixo Null = Null
 
--- prova (Var variavel) ([a]) = do
---     printVariavel(variavel)
---     if temAbsurdo([a])(variavel)
---     then
---         putStrLn("Fecha ramo")
---     else
---         putStrLn("Segue")
+-- esse caso pode ocorrer caso um ramo já esteja fechado anteriormente e o outro não
+fechaNodesAbaixo NodeFechado = NodeFechado
+
+variavelEqual :: Variavel -> Variavel -> Bool
+variavelEqual (Nome nome1) (Nome nome2) = nome1 == nome2
+
+formulaEqual :: Formula -> Formula -> Bool
+formulaEqual (Var variavel1) (Var variavel2) = variavelEqual variavel1 variavel2
+formulaEqual (Not formula1) (Not formula2) = formulaEqual formula1 formula2
+formulaEqual (And formula1 formula2) (And formula3 formula4) = formulaEqual formula1 formula3 && formulaEqual formula2 formula4
+formulaEqual (Or formula1 formula2) (Or formula3 formula4) = formulaEqual formula1 formula3 && formulaEqual formula2 formula4
+formulaEqual (Implicacao formula1 formula2) (Implicacao formula3 formula4) = formulaEqual formula1 formula3 && formulaEqual formula2 formula4
+
+formulaEqual _ _= False
+
+prova :: Formula -> Arvore
+prova formula = provaAux(NodeIntermediario (Node (Not formula) False False) Null Null)
+
+provaAux :: Arvore -> Arvore
+provaAux (NodeIntermediario (Node formula False False) e d)
+    | not(formulaEqual formula (simplifica formula)) = provaDireitaAux y where
+        y = provaEsquerdaAux x where x = insereNode1 (NodeIntermediario (Node formula False True) e d) (Node (simplifica(formula)) False False)
+provaAux arvore = arvore
+
+provaEsquerdaAux :: Arvore -> Arvore
+provaEsquerdaAux (NodeIntermediario n e d) = NodeIntermediario n (provaAux e) d
+provaEsquerdaAux a = a
+
+provaDireitaAux :: Arvore -> Arvore
+provaDireitaAux (NodeIntermediario n e d) = NodeIntermediario n e (provaAux d)
+provaDireitaAux a = a

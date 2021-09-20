@@ -20,18 +20,10 @@ r = Var $ Nome "r"
 --     putStrLn("")
 --     printFormula (simplifica (Not (Not (Or p (And q r)))))
 main = do
-    printFormula (Implicacao (Or p (And q r)) (And (Or p q) (Or p r)))
-    putStrLn("")
-    printArvore (prova (Implicacao (Or p (And q r)) (And (Or p q) (Or p r))))
-    putStrLn("\n\n###############")
-    printFormula (Implicacao a (Implicacao a (Implicacao b a)))
-    putStrLn("")
-    printArvore (prova (Implicacao a (Implicacao a (Implicacao b a))))
-    putStrLn("\n\n###############")
-    printFormula (Implicacao b (And a (Or b a)))
-    putStrLn("")
-    printArvore (prova (Implicacao b (And a (Or b a))))
-    putStrLn("")
+    printProva (Implicacao (Or p (And q r)) (And (Or p q) (Or p r)))
+    printProva (Implicacao a (Implicacao a (Implicacao b a)))
+    printProva (Implicacao b (And a (Or b a)))
+
 -- form = (Not (Or (Not a) (Implicacao b a)))
 -- main = do
 --     printFormula (simplifica(form))
@@ -279,3 +271,29 @@ buscaContradicao formula (NodeIntermediario node e d) = NodeIntermediario node (
 
 buscaContradicao formula Null = Null
 buscaContradicao formula NodeFechado = NodeFechado
+
+possuiNodeAberto :: Arvore -> Bool
+possuiNodeAberto NodeFechado = True
+possuiNodeAberto (NodeIntermediario node Null Null) = False
+possuiNodeAberto (NodeIntermediario node Null d) = possuiNodeAberto d
+possuiNodeAberto (NodeIntermediario node e Null) = possuiNodeAberto e
+possuiNodeAberto (NodeIntermediario node e d) = possuiNodeAberto e && possuiNodeAberto d
+
+printProva :: Formula -> IO()
+printProva formula = do
+    putStrLn "\n\n######################"
+    putStr "Árvore de prova/refutação da fórmula "
+    printFormula formula
+    putStr ": \n\n"
+    printArvore arvoreProva
+    putStr "\n\n"
+    if possuiNodeAberto arvoreProva
+    then
+        putStr "A fórmula é uma tautologia"
+    else
+        putStr "A fórmula é falsificável"
+    putStr "\n"
+    where
+        arvoreProva = prova formula
+
+

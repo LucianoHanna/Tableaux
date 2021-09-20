@@ -6,7 +6,32 @@ a = Var $ Nome "a"
 b :: Formula
 b = Var $ Nome "b"
 
-main = printArvore (prova (Implicacao a (Implicacao a (Implicacao b a))))
+p :: Formula
+p = Var $ Nome "p"
+
+q :: Formula
+q = Var $ Nome "q"
+
+r :: Formula
+r = Var $ Nome "r"
+
+-- main = do 
+--     printFormula (Not (Not (Or p (And q r))))
+--     putStrLn("")
+--     printFormula (simplifica (Not (Not (Or p (And q r)))))
+main = do
+    printFormula (Implicacao (Or p (And q r)) (And (Or p q) (Or p r)))
+    putStrLn("")
+    printArvore (prova (Implicacao (Or p (And q r)) (And (Or p q) (Or p r))))
+    putStrLn("\n\n###############")
+    printFormula (Implicacao a (Implicacao a (Implicacao b a)))
+    putStrLn("")
+    printArvore (prova (Implicacao a (Implicacao a (Implicacao b a))))
+    putStrLn("\n\n###############")
+    printFormula (Implicacao b (And a (Or b a)))
+    putStrLn("")
+    printArvore (prova (Implicacao b (And a (Or b a))))
+    putStrLn("")
 -- form = (Not (Or (Not a) (Implicacao b a)))
 -- main = do
 --     printFormula (simplifica(form))
@@ -33,7 +58,6 @@ data Formula =
 -- Eu marco os Nodes como ramo fechado desde que todos os filhos dele estejam fechados
 data Node = Node {
     formula :: Formula,
-    ramoFechado :: Bool,
     processado :: Bool
 }
 
@@ -134,14 +158,14 @@ formulaToStr(Implicacao formula1 formula2) = "("++formulaToStr formula1++" -> " 
 
 
 nodeToStr :: Node -> String
-nodeToStr(Node formula rf p) = formulaToStr formula ++boolToStr rf ++boolToStr p
+nodeToStr(Node formula p) = formulaToStr formula ++ boolToStr p
 
 arvoreNivelToStrAux :: Arvore -> String
 arvoreNivelToStrAux (NodeIntermediario node _ _) = "["++nodeToStr node++"]"
 
 arvoreNivelToStrAux NodeFechado = "[X]"
 
-arvoreNivelToStrAux Null = "[]"
+arvoreNivelToStrAux Null = "[*]"
 
 -- Essa função vai estar inserindo em todas as folhas visto que devo aplicar a fórmula em todas as folhas
 insereNode1 :: Arvore -> Node -> Arvore
@@ -158,9 +182,9 @@ insereArvore (NodeIntermediario node e d) a1 a2 = NodeIntermediario node (insere
 
 fechaNodesAbaixo :: Arvore -> Arvore
 -- se for "folha"
-fechaNodesAbaixo (NodeIntermediario (Node formula ramoFechado processado) Null Null) = NodeIntermediario (Node formula True processado) NodeFechado Null
+fechaNodesAbaixo (NodeIntermediario (Node formula processado) Null Null) = NodeIntermediario (Node formula processado) NodeFechado Null
 -- se for nó intermediário
-fechaNodesAbaixo (NodeIntermediario (Node formula ramoFechado processado) e d) = NodeIntermediario (Node formula True processado) (fechaNodesAbaixo e)  (fechaNodesAbaixo d)
+fechaNodesAbaixo (NodeIntermediario (Node formula processado) e d) = NodeIntermediario (Node formula processado) (fechaNodesAbaixo e)  (fechaNodesAbaixo d)
 fechaNodesAbaixo Null = Null
 
 -- esse caso pode ocorrer caso um ramo já esteja fechado anteriormente e o outro não
@@ -179,7 +203,7 @@ formulaEqual (Implicacao formula1 formula2) (Implicacao formula3 formula4) = for
 formulaEqual _ _= False
 
 prova :: Formula -> Arvore
-prova formula = provaAux(NodeIntermediario (Node (Not formula) False False) Null Null)
+prova formula = provaAux(NodeIntermediario (Node (Not formula) False) Null Null)
 
 provaAux :: Arvore -> Arvore
 provaAux a = atualizaRamosFechados (provaAux1 a)
@@ -202,30 +226,30 @@ provaAux a = atualizaRamosFechados (provaAux1 a)
 provaAux1 :: Arvore -> Arvore
 
 -- Entra nessa função se o nó não foi processado nem fechado e a fórmula pode ser simplificada
-provaAux1 (NodeIntermediario (Node formula False False) e d)
+provaAux1 (NodeIntermediario (Node formula False) e d)
     | not(formulaEqual formula (simplifica formula)) = 
-        provaAux1 (insereNode1 a (Node (simplifica formula) False False)) where
-            a = NodeIntermediario (Node formula False True) e d
+        provaAux1 (insereNode1 a (Node (simplifica formula) False)) where
+            a = NodeIntermediario (Node formula True) e d
 
 -- Daqui em diante já não existe nenhuma regra de simplificação aplicável à fórmula
 
 -- Se for um and, eu coloco um nó abaixo do outro
-provaAux1 (NodeIntermediario (Node (And formula1 formula2) False False) e d) = 
-    provaAux1(insereNode1 a1 (Node formula2 False False)) where
-        a1 =insereNode1 a (Node formula1 False False) where
-            a = NodeIntermediario (Node (And formula1 formula2) False True) e d
+provaAux1 (NodeIntermediario (Node (And formula1 formula2) False) e d) = 
+    provaAux1(insereNode1 a1 (Node formula2 False)) where
+        a1 =insereNode1 a (Node formula1 False) where
+            a = NodeIntermediario (Node (And formula1 formula2) True) e d
 
 -- Se for um or, eu coloco um nó em cada ramo
-provaAux1 (NodeIntermediario (Node (Or formula1 formula2) False False) e d) =
-    provaAux1(insereNode2 a (Node formula1 False False) (Node formula2 False False)) where
-        a = NodeIntermediario (Node (And formula1 formula2) False True) e d
+provaAux1 (NodeIntermediario (Node (Or formula1 formula2) False) e d) =
+    provaAux1(insereNode2 a (Node formula1 False) (Node formula2 False)) where
+        a = NodeIntermediario (Node (And formula1 formula2) True) e d
 
 -- Se a fórmula for uma variável ou a negação de uma variável, só considero como processada e sigo em frente
-provaAux1 (NodeIntermediario (Node (Var var) False False) e d) = provaAux1 (NodeIntermediario (Node (Var var) False True) e d)
-provaAux1 (NodeIntermediario (Node (Not (Var var)) False False) e d) = provaAux1 (NodeIntermediario (Node (Not (Var var)) False True) e d)
+provaAux1 (NodeIntermediario (Node (Var var) False) e d) = provaAux1 (NodeIntermediario (Node (Var var) True) e d)
+provaAux1 (NodeIntermediario (Node (Not (Var var)) False) e d) = provaAux1 (NodeIntermediario (Node (Not (Var var)) True) e d)
 
 -- Se eu chamar a função para um nó que já foi processado, eu processo os seus ramos à esquerda ou direita
-provaAux1 (NodeIntermediario (Node formula False True) e d) = NodeIntermediario (Node formula False True) (provaAux1 e) (provaAux1 d)
+provaAux1 (NodeIntermediario (Node formula True) e d) = NodeIntermediario (Node formula True) (provaAux1 e) (provaAux1 d)
 
 -- Só chega aqui se for Null ou NodeFechado, ou seja, nada a ser feito para eles
 provaAux1 a = a
@@ -237,34 +261,36 @@ contradiz _ _ = False
 
 atualizaRamosFechados :: Arvore -> Arvore
 
-atualizaRamosFechados (NodeIntermediario (Node (Var var) False processado) e d) =
-    NodeIntermediario (Node (Var var) False processado) arvE arvD where
+atualizaRamosFechados (NodeIntermediario (Node (Var var) processado) e d) =
+    NodeIntermediario (Node (Var var) processado) (atualizaRamosFechados arvE) (atualizaRamosFechados arvD) where
         arvE = buscaContradicao (Var var) e
         arvD = buscaContradicao (Var var) d
 
-atualizaRamosFechados (NodeIntermediario (Node (Not(Var var)) False processado) e d) =
-    NodeIntermediario (Node (Var var) False processado) arvE arvD where
+atualizaRamosFechados (NodeIntermediario (Node (Not(Var var)) processado) e d) =
+    NodeIntermediario (Node (Var var) processado) (atualizaRamosFechados arvE) (atualizaRamosFechados arvD) where
         arvE = buscaContradicao (Var var) e
         arvD = buscaContradicao (Var var) d
 
 atualizaRamosFechados (NodeIntermediario node e d) = NodeIntermediario node (atualizaRamosFechados e) (atualizaRamosFechados d)
-atualizaRamosFechados a = a
+atualizaRamosFechados Null = Null
+atualizaRamosFechados NodeFechado = NodeFechado
 
 buscaContradicao :: Formula -> Arvore -> Arvore
-buscaContradicao formula (NodeIntermediario (Node (Var var) False processado) e d) = 
+buscaContradicao formula (NodeIntermediario (Node (Var var) processado) e d) = 
     if contradiz formula (Var var)
     then
-        fechaNodesAbaixo (NodeIntermediario (Node (Var var) False processado) e d)
+        fechaNodesAbaixo (NodeIntermediario (Node (Var var) processado) e d)
     else
-        NodeIntermediario (Node (Var var) False processado) (buscaContradicao formula e) (buscaContradicao formula d)
+        NodeIntermediario (Node (Var var) processado) (buscaContradicao formula e) (buscaContradicao formula d)
 
-buscaContradicao formula (NodeIntermediario (Node (Not(Var var)) False processado) e d) = 
+buscaContradicao formula (NodeIntermediario (Node (Not(Var var)) processado) e d) = 
     if contradiz formula (Not(Var var))
     then
-        fechaNodesAbaixo (NodeIntermediario (Node (Not(Var var)) False processado) e d)
+        fechaNodesAbaixo (NodeIntermediario (Node (Not(Var var)) processado) e d)
     else
-        NodeIntermediario (Node (Not(Var var)) False processado) (buscaContradicao formula e) (buscaContradicao formula d)
+        NodeIntermediario (Node (Not(Var var)) processado) (buscaContradicao formula e) (buscaContradicao formula d)
 
 buscaContradicao formula (NodeIntermediario node e d) = NodeIntermediario node (buscaContradicao formula e) (buscaContradicao formula d)
 
-buscaContradicao formula arvore = arvore
+buscaContradicao formula Null = Null
+buscaContradicao formula NodeFechado = NodeFechado

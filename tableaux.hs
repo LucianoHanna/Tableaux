@@ -210,7 +210,7 @@ provaAux a = atualizaRamosFechados (provaAux1 a)
 
 provaAux1 :: Arvore -> Arvore
 
--- Entra nessa função se o nó não foi processado nem fechado e a fórmula pode ser simplificada
+-- Entra nessa função se o nó não foi processado e a fórmula pode ser simplificada
 provaAux1 (NodeIntermediario (Node formula False) e d)
     | not(formulaEqual formula (simplifica formula)) = 
         provaAux1 (insereNode1 a (Node (simplifica formula) False)) where
@@ -227,7 +227,7 @@ provaAux1 (NodeIntermediario (Node (And formula1 formula2) False) e d) =
 -- Se for um or, eu coloco um nó em cada ramo
 provaAux1 (NodeIntermediario (Node (Or formula1 formula2) False) e d) =
     provaAux1(insereNode2 a (Node formula1 False) (Node formula2 False)) where
-        a = NodeIntermediario (Node (And formula1 formula2) True) e d
+        a = NodeIntermediario (Node (Or formula1 formula2) True) e d
 
 -- Se a fórmula for uma variável ou a negação de uma variável, só considero como processada e sigo em frente
 provaAux1 (NodeIntermediario (Node (Var var) False) e d) = provaAux1 (NodeIntermediario (Node (Var var) True) e d)

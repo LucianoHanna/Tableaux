@@ -208,21 +208,6 @@ prova formula = provaAux(NodeIntermediario (Node (Not formula) False) Null Null)
 provaAux :: Arvore -> Arvore
 provaAux a = atualizaRamosFechados (provaAux1 a)
 
--- atualizaNodes :: Arvore -> Arvore
--- atualizaNodes (NodeIntermediario (Node formula rf processado) (NodeIntermediario (Node formula1 rf1 processado1) e1 d1) (NodeIntermediario (Node formula2 rf2 processado2) e2 d2)) =
---     if rf1 && rf2
---     then
---         -- se os dois filhos estão fechados, então esse também está
---         (NodeIntermediario (Node formula True processado) (NodeIntermediario formula1 rf1 processado1) (NodeIntermediario formula2 rf2 processado2))
---     else
---         (if rf3 && rf4
---         then
---             (NodeIntermediario (Node formula True processado) (NodeIntermediario formula3 rf3 processado3) (NodeIntermediario formula4 rf4 processado4))
---         else
---             (NodeIntermediario (Node formula rf processado) (NodeIntermediario formula3 rf3 processado3) (NodeIntermediario formula4 rf4 processado4))) where
---                 (NodeIntermediario formula3 rf3 processado3) = atualizaNodes (NodeIntermediario formula3 rf3 processado3)
---                 (NodeIntermediario formula4 rf4 processado4) = atualizaNodes (NodeIntermediario formula4 rf4 processado4)
-
 provaAux1 :: Arvore -> Arvore
 
 -- Entra nessa função se o nó não foi processado nem fechado e a fórmula pode ser simplificada

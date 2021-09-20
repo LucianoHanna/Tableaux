@@ -252,9 +252,9 @@ atualizaRamosFechados (NodeIntermediario (Node (Var var) processado) e d) =
         arvD = buscaContradicao (Var var) d
 
 atualizaRamosFechados (NodeIntermediario (Node (Not(Var var)) processado) e d) =
-    NodeIntermediario (Node (Var var) processado) (atualizaRamosFechados arvE) (atualizaRamosFechados arvD) where
-        arvE = buscaContradicao (Var var) e
-        arvD = buscaContradicao (Var var) d
+    NodeIntermediario (Node (Not(Var var)) processado) (atualizaRamosFechados arvE) (atualizaRamosFechados arvD) where
+        arvE = buscaContradicao (Not(Var var)) e
+        arvD = buscaContradicao (Not(Var var)) d
 
 atualizaRamosFechados (NodeIntermediario node e d) = NodeIntermediario node (atualizaRamosFechados e) (atualizaRamosFechados d)
 atualizaRamosFechados Null = Null

@@ -182,9 +182,9 @@ insereArvore (NodeIntermediario node e d) a1 a2 = NodeIntermediario node (insere
 
 fechaNodesAbaixo :: Arvore -> Arvore
 -- se for "folha"
-fechaNodesAbaixo (NodeIntermediario (Node formula processado) Null Null) = NodeIntermediario (Node formula processado) NodeFechado Null
+fechaNodesAbaixo (NodeIntermediario node Null Null) = NodeIntermediario node NodeFechado Null
 -- se for nó intermediário
-fechaNodesAbaixo (NodeIntermediario (Node formula processado) e d) = NodeIntermediario (Node formula processado) (fechaNodesAbaixo e)  (fechaNodesAbaixo d)
+fechaNodesAbaixo (NodeIntermediario node e d) = NodeIntermediario node (fechaNodesAbaixo e)  (fechaNodesAbaixo d)
 fechaNodesAbaixo Null = Null
 
 -- esse caso pode ocorrer caso um ramo já esteja fechado anteriormente e o outro não

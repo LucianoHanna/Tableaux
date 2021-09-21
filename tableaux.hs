@@ -1,42 +1,22 @@
+module Tableaux where
+
 import Data.Typeable
 
-a :: Formula
-a = Var $ Nome "a"
-
-b :: Formula
-b = Var $ Nome "b"
-
-p :: Formula
-p = Var $ Nome "p"
-
-q :: Formula
-q = Var $ Nome "q"
-
-r :: Formula
-r = Var $ Nome "r"
-
-main = do
-    printProva (Implicacao (Or p (And q r)) (And (Or p q) (Or p r)))
-    printProva (Implicacao a (Implicacao a (Implicacao b a)))
-    printProva (Implicacao b (And a (Or b a)))
-
-
-
-data Variavel = Nome String
+data Variable = Name String
 
 -- Estrutura de dados para uma formula
 data Formula =
-    Var Variavel |
+    Var Variable |
     Not Formula |
     And Formula Formula |
     Or Formula Formula |
-    Implicacao Formula Formula
+    Implication Formula Formula
 
 
 -- Eu marco os Nodes como ramo fechado desde que todos os filhos dele estejam fechados
 data Node = Node {
     formula :: Formula,
-    processado :: Bool
+    processed :: Bool
 }
 
 -- NodeFechado serve basicamente para facilitar no print da árvore,
@@ -52,30 +32,29 @@ data Arvore =
     NodeIntermediario Node Arvore Arvore
 
 
-implicacao :: Formula -> Formula -> Formula
-implicacao formula1 formula2 = Or (Not formula1) formula2
+implication :: Formula -> Formula -> Formula
+implication formula1 formula2 = Or (Not formula1) formula2
 
 
 demorgan :: Formula -> Formula
 demorgan (And formula1 formula2) = Or (Not formula1) (Not formula2)
-
 demorgan (Or formula1 formula2) = And (Not formula1) (Not formula2)
 
 simplifica :: Formula -> Formula
 simplifica (Not (Not formula)) = formula
 simplifica (Not (And formula1 formula2)) = demorgan(And formula1 formula2)
 simplifica (Not (Or formula1 formula2)) = demorgan(Or formula1 formula2)
-simplifica (Implicacao formula1 formula2) = implicacao formula1(formula2)
-simplifica (Not (Implicacao formula1 formula2)) = Not(implicacao formula1(formula2))
+simplifica (Implication formula1 formula2) = implication formula1(formula2)
+simplifica (Not (Implication formula1 formula2)) = Not(implication formula1(formula2))
 
 -- TODO: verificar se tem como remover isso
 simplifica formula = formula  -- se cheguei aqui, já tá simplificado
 
-printVariavel :: Variavel -> IO()
-printVariavel (Nome nome) = putStr nome
+printVariable :: Variable -> IO()
+printVariable (Name nome) = putStr nome
 
 printFormula :: Formula -> IO()
-printFormula (Var variavel) = printVariavel variavel
+printFormula (Var variavel) = printVariable variavel
 
 printFormula formula = putStr(formulaToStr formula)
 
@@ -108,14 +87,11 @@ printArvoreAux a nivelDesejado = do
     else
         putStr""
 
-concatStrings :: String -> String -> String
-concatStrings a b = a ++ b
-
 arvoreNivelToStr :: Arvore -> Int -> Int -> String
 arvoreNivelToStr (NodeIntermediario n e d) nivelAtual nivelDesejado
     | nivelAtual == nivelDesejado = arvoreNivelToStrAux(NodeIntermediario n e d)
     | nivelAtual < nivelDesejado = do
-        concatStrings (arvoreNivelToStr e (nivelAtual + 1) nivelDesejado) (arvoreNivelToStr d (nivelAtual + 1) nivelDesejado)
+        (arvoreNivelToStr e (nivelAtual + 1) nivelDesejado) ++ (arvoreNivelToStr d (nivelAtual + 1) nivelDesejado)
     | otherwise = ""
 
 arvoreNivelToStr NodeFechado nivelAtual nivelDesejado
@@ -126,23 +102,19 @@ arvoreNivelToStr Null nivelAtual nivelDesejado
     | nivelAtual == nivelDesejado = arvoreNivelToStrAux Null
     | otherwise = ""
 
-boolToStr :: Bool -> String
-boolToStr True = "True"
-boolToStr False = "False"
-
-variavelToStr :: Variavel -> String
-variavelToStr(Nome nome) = nome
+variavelToStr :: Variable -> String
+variavelToStr(Name nome) = nome
 
 formulaToStr :: Formula -> String
 formulaToStr(Var variavel) = variavelToStr variavel
 formulaToStr(Not formula) = "~("++formulaToStr formula++")"
 formulaToStr(And formula1 formula2) = "("++formulaToStr formula1++" & " ++ formulaToStr formula2 ++ ")"
 formulaToStr(Or formula1 formula2) = "("++formulaToStr formula1++" | " ++ formulaToStr formula2 ++ ")"
-formulaToStr(Implicacao formula1 formula2) = "("++formulaToStr formula1++" -> " ++ formulaToStr formula2 ++ ")"
+formulaToStr(Implication formula1 formula2) = "("++formulaToStr formula1++" -> " ++ formulaToStr formula2 ++ ")"
 
 
 nodeToStr :: Node -> String
-nodeToStr(Node formula p) = formulaToStr formula ++ boolToStr p
+nodeToStr(Node formula p) = formulaToStr formula
 
 arvoreNivelToStrAux :: Arvore -> String
 arvoreNivelToStrAux (NodeIntermediario node _ _) = "["++nodeToStr node++"]"
@@ -174,15 +146,15 @@ fechaNodesAbaixo Null = Null
 -- esse caso pode ocorrer caso um ramo já esteja fechado anteriormente e o outro não
 fechaNodesAbaixo NodeFechado = NodeFechado
 
-variavelEqual :: Variavel -> Variavel -> Bool
-variavelEqual (Nome nome1) (Nome nome2) = nome1 == nome2
+variavelEqual :: Variable -> Variable -> Bool
+variavelEqual (Name nome1) (Name nome2) = nome1 == nome2
 
 formulaEqual :: Formula -> Formula -> Bool
 formulaEqual (Var variavel1) (Var variavel2) = variavelEqual variavel1 variavel2
 formulaEqual (Not formula1) (Not formula2) = formulaEqual formula1 formula2
 formulaEqual (And formula1 formula2) (And formula3 formula4) = formulaEqual formula1 formula3 && formulaEqual formula2 formula4
 formulaEqual (Or formula1 formula2) (Or formula3 formula4) = formulaEqual formula1 formula3 && formulaEqual formula2 formula4
-formulaEqual (Implicacao formula1 formula2) (Implicacao formula3 formula4) = formulaEqual formula1 formula3 && formulaEqual formula2 formula4
+formulaEqual (Implication formula1 formula2) (Implication formula3 formula4) = formulaEqual formula1 formula3 && formulaEqual formula2 formula4
 
 formulaEqual _ _= False
 
@@ -236,9 +208,9 @@ contradiz _ _ = False
 
 atualizaRamosFechados :: Arvore -> Arvore
 
-atualizaRamosFechados (NodeIntermediario (Node formula processado) e d) 
+atualizaRamosFechados (NodeIntermediario (Node formula processed) e d) 
     | formulaIsSimple formula =
-    NodeIntermediario (Node formula processado) (atualizaRamosFechados arvE) (atualizaRamosFechados arvD) where
+    NodeIntermediario (Node formula processed) (atualizaRamosFechados arvE) (atualizaRamosFechados arvD) where
         arvE = buscaContradicao formula e
         arvD = buscaContradicao formula d
 
@@ -247,9 +219,9 @@ atualizaRamosFechados Null = Null
 atualizaRamosFechados NodeFechado = NodeFechado
 
 buscaContradicao :: Formula -> Arvore -> Arvore
-buscaContradicao formula (NodeIntermediario (Node formula1 processado) e d) 
+buscaContradicao formula (NodeIntermediario (Node formula1 processed) e d) 
     | formulaIsSimple formula1 && contradiz formula formula1 =
-        fechaNodesAbaixo (NodeIntermediario (Node formula1 processado) e d)
+        fechaNodesAbaixo (NodeIntermediario (Node formula1 processed) e d)
 
 buscaContradicao formula (NodeIntermediario node e d) = NodeIntermediario node (buscaContradicao formula e) (buscaContradicao formula d)
 

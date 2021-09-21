@@ -15,26 +15,12 @@ q = Var $ Nome "q"
 r :: Formula
 r = Var $ Nome "r"
 
--- main = do 
---     printFormula (Not (Not (Or p (And q r))))
---     putStrLn("")
---     printFormula (simplifica (Not (Not (Or p (And q r)))))
 main = do
     printProva (Implicacao (Or p (And q r)) (And (Or p q) (Or p r)))
     printProva (Implicacao a (Implicacao a (Implicacao b a)))
     printProva (Implicacao b (And a (Or b a)))
 
--- form = (Not (Or (Not a) (Implicacao b a)))
--- main = do
---     printFormula (simplifica(form))
---     putStrLn(" ")
---     printFormula (form)
---     putStrLn(" ")
---     printBool (formulaEqual(simplifica(form)) (form))
 
-boolToStr :: Bool -> String
-boolToStr True = "True"
-boolToStr False = "False"
 
 data Variavel = Nome String
 
@@ -81,6 +67,8 @@ simplifica (Not (And formula1 formula2)) = demorgan(And formula1 formula2)
 simplifica (Not (Or formula1 formula2)) = demorgan(Or formula1 formula2)
 simplifica (Implicacao formula1 formula2) = implicacao formula1(formula2)
 simplifica (Not (Implicacao formula1 formula2)) = Not(implicacao formula1(formula2))
+
+-- TODO: verificar se tem como remover isso
 simplifica formula = formula  -- se cheguei aqui, já tá simplificado
 
 printVariavel :: Variavel -> IO()
@@ -138,6 +126,10 @@ arvoreNivelToStr Null nivelAtual nivelDesejado
     | nivelAtual == nivelDesejado = arvoreNivelToStrAux Null
     | otherwise = ""
 
+boolToStr :: Bool -> String
+boolToStr True = "True"
+boolToStr False = "False"
+
 variavelToStr :: Variavel -> String
 variavelToStr(Nome nome) = nome
 
@@ -194,6 +186,12 @@ formulaEqual (Implicacao formula1 formula2) (Implicacao formula3 formula4) = for
 
 formulaEqual _ _= False
 
+-- verifica se é Var var ou (Not Var var)
+formulaIsSimple :: Formula -> Bool
+formulaIsSimple (Var var) = True
+formulaIsSimple (Not (Var var)) = True
+formulaIsSimple _ = False
+
 prova :: Formula -> Arvore
 prova formula = provaAux(NodeIntermediario (Node (Not formula) False) Null Null)
 
@@ -222,8 +220,8 @@ provaAux1 (NodeIntermediario (Node (Or formula1 formula2) False) e d) =
         a = NodeIntermediario (Node (Or formula1 formula2) True) e d
 
 -- Se a fórmula for uma variável ou a negação de uma variável, só considero como processada e sigo em frente
-provaAux1 (NodeIntermediario (Node (Var var) False) e d) = provaAux1 (NodeIntermediario (Node (Var var) True) e d)
-provaAux1 (NodeIntermediario (Node (Not (Var var)) False) e d) = provaAux1 (NodeIntermediario (Node (Not (Var var)) True) e d)
+provaAux1 (NodeIntermediario (Node formula False) e d)
+    | formulaIsSimple formula = provaAux1 (NodeIntermediario (Node formula True) e d)
 
 -- Se eu chamar a função para um nó que já foi processado, eu processo os seus ramos à esquerda ou direita
 provaAux1 (NodeIntermediario (Node formula True) e d) = NodeIntermediario (Node formula True) (provaAux1 e) (provaAux1 d)
@@ -238,34 +236,20 @@ contradiz _ _ = False
 
 atualizaRamosFechados :: Arvore -> Arvore
 
-atualizaRamosFechados (NodeIntermediario (Node (Var var) processado) e d) =
-    NodeIntermediario (Node (Var var) processado) (atualizaRamosFechados arvE) (atualizaRamosFechados arvD) where
-        arvE = buscaContradicao (Var var) e
-        arvD = buscaContradicao (Var var) d
-
-atualizaRamosFechados (NodeIntermediario (Node (Not(Var var)) processado) e d) =
-    NodeIntermediario (Node (Not(Var var)) processado) (atualizaRamosFechados arvE) (atualizaRamosFechados arvD) where
-        arvE = buscaContradicao (Not(Var var)) e
-        arvD = buscaContradicao (Not(Var var)) d
+atualizaRamosFechados (NodeIntermediario (Node formula processado) e d) 
+    | formulaIsSimple formula =
+    NodeIntermediario (Node formula processado) (atualizaRamosFechados arvE) (atualizaRamosFechados arvD) where
+        arvE = buscaContradicao formula e
+        arvD = buscaContradicao formula d
 
 atualizaRamosFechados (NodeIntermediario node e d) = NodeIntermediario node (atualizaRamosFechados e) (atualizaRamosFechados d)
 atualizaRamosFechados Null = Null
 atualizaRamosFechados NodeFechado = NodeFechado
 
 buscaContradicao :: Formula -> Arvore -> Arvore
-buscaContradicao formula (NodeIntermediario (Node (Var var) processado) e d) = 
-    if contradiz formula (Var var)
-    then
-        fechaNodesAbaixo (NodeIntermediario (Node (Var var) processado) e d)
-    else
-        NodeIntermediario (Node (Var var) processado) (buscaContradicao formula e) (buscaContradicao formula d)
-
-buscaContradicao formula (NodeIntermediario (Node (Not(Var var)) processado) e d) = 
-    if contradiz formula (Not(Var var))
-    then
-        fechaNodesAbaixo (NodeIntermediario (Node (Not(Var var)) processado) e d)
-    else
-        NodeIntermediario (Node (Not(Var var)) processado) (buscaContradicao formula e) (buscaContradicao formula d)
+buscaContradicao formula (NodeIntermediario (Node formula1 processado) e d) 
+    | formulaIsSimple formula1 && contradiz formula formula1 =
+        fechaNodesAbaixo (NodeIntermediario (Node formula1 processado) e d)
 
 buscaContradicao formula (NodeIntermediario node e d) = NodeIntermediario node (buscaContradicao formula e) (buscaContradicao formula d)
 
@@ -273,11 +257,11 @@ buscaContradicao formula Null = Null
 buscaContradicao formula NodeFechado = NodeFechado
 
 possuiNodeAberto :: Arvore -> Bool
-possuiNodeAberto NodeFechado = True
-possuiNodeAberto (NodeIntermediario node Null Null) = False
+possuiNodeAberto NodeFechado = False
+possuiNodeAberto (NodeIntermediario node Null Null) = True
 possuiNodeAberto (NodeIntermediario node Null d) = possuiNodeAberto d
 possuiNodeAberto (NodeIntermediario node e Null) = possuiNodeAberto e
-possuiNodeAberto (NodeIntermediario node e d) = possuiNodeAberto e && possuiNodeAberto d
+possuiNodeAberto (NodeIntermediario node e d) = possuiNodeAberto e || possuiNodeAberto d
 
 printProva :: Formula -> IO()
 printProva formula = do
@@ -289,9 +273,9 @@ printProva formula = do
     putStr "\n\n"
     if possuiNodeAberto arvoreProva
     then
-        putStr "A fórmula é uma tautologia"
-    else
         putStr "A fórmula é falsificável"
+    else
+        putStr "A fórmula é uma tautologia"
     putStr "\n"
     where
         arvoreProva = prova formula

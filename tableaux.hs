@@ -43,29 +43,32 @@ printFormula formula = putStr(formulaToStr formula)
 
 printArvore :: Arvore -> IO()
 printArvore a =
-    printArvoreAux a 0
+    printArvoreAux a 0 "+"
 
-printArvoreAux :: Arvore -> Int -> IO()
-printArvoreAux a nivelDesejado = do
-    if arvoreStrPossuiNoNotNull(arvoreNivelToStr a 0 nivelDesejado) False
-    then do
-        putStrLn(arvoreNivelToStr a 0 nivelDesejado)
-        printArvoreAux a (nivelDesejado + 1)
-    else
-        putStr""
+printNiveis :: Int -> IO()
+printNiveis 0 = putStr ""
+printNiveis i = do
+    putStr "|  "
+    printNiveis (i - 1)
 
-arvoreStrPossuiNoNotNull :: String -> Bool -> Bool
-arvoreStrPossuiNoNotNull (x:xs) haveNonParentese
-    | haveNonParentese = True
-    | otherwise = arvoreStrPossuiNoNotNull xs (not(isBracket x ))
+ramoEsquerda :: Arvore -> Arvore
+ramoEsquerda (NodeIntermediario _ e _) = e
+ramoEsquerda _ = Null
 
-arvoreStrPossuiNoNotNull [] haveNonParentese = haveNonParentese
+ramoDireita :: Arvore -> Arvore
+ramoDireita (NodeIntermediario _ _ d) = d
+ramoDireita _ = Null
 
+printArvoreAux :: Arvore -> Int -> String -> IO()
+printArvoreAux Null _ _ = putStr ""
+printArvoreAux a nivel ramo = do
+    printNiveis nivel
+    putStr ramo
+    putStr "- "
+    putStrLn (arvoreNivelToStrAux a)
+    printArvoreAux (ramoEsquerda a) (nivel+1) "+"
+    printArvoreAux (ramoDireita a) (nivel+1) "`"
 
-isBracket :: Char -> Bool
-isBracket '[' = True
-isBracket ']' = True
-isBracket x = False
 
 arvoreNivelToStr :: Arvore -> Int -> Int -> String
 arvoreNivelToStr (NodeIntermediario n e d) nivelAtual nivelDesejado
@@ -97,11 +100,8 @@ nodeToStr :: Node -> String
 nodeToStr(Node formula p) = formulaToStr formula
 
 arvoreNivelToStrAux :: Arvore -> String
-arvoreNivelToStrAux (NodeIntermediario node _ _) = "["++nodeToStr node++"]"
-
-arvoreNivelToStrAux NodeFechado = "[X]"
-
-arvoreNivelToStrAux Null = "[*]"
+arvoreNivelToStrAux (NodeIntermediario node _ _) = nodeToStr node
+arvoreNivelToStrAux NodeFechado = "X"
 
 -- Essa função vai estar inserindo em todas as folhas visto que devo aplicar a fórmula em todas as folhas
 insereNode1 :: Arvore -> Node -> Arvore
@@ -145,48 +145,48 @@ provaAux1 :: Arvore -> Arvore
 
 -- v: a -> b ==> f: a / v: b
 provaAux1 (NodeIntermediario (Node (Implication formula1 formula2) False) e d) =
-    provaAux1(insereNode2 a (Node (Not formula1) False) (Node formula2 False)) where
+    provaAux(insereNode2 a (Node (Not formula1) False) (Node formula2 False)) where
         a = NodeIntermediario (Node (Implication formula1 formula2) True) e d
 
 -- f: a -> b ==> v: a ; f: b
 provaAux1 (NodeIntermediario (Node (Not (Implication formula1 formula2)) False) e d) =
-    provaAux1(insereNode1 a1 (Node (Not formula2) False)) where
+    provaAux(insereNode1 a1 (Node (Not formula2) False)) where
         a1 =insereNode1 a (Node formula1 False) where
             a = NodeIntermediario (Node (Not (Implication formula1 formula2)) True) e d
 
 -- v: a & b ==> v: a ; v : b
 provaAux1 (NodeIntermediario (Node (And formula1 formula2) False) e d) =
-    provaAux1(insereNode1 a1 (Node formula2 False)) where
+    provaAux(insereNode1 a1 (Node formula2 False)) where
         a1 =insereNode1 a (Node formula1 False) where
             a = NodeIntermediario (Node (And formula1 formula2) True) e d
 
 -- f: a & b ==> f: a / f : b
 provaAux1 (NodeIntermediario (Node (Not (And formula1 formula2)) False) e d) =
-    provaAux1(insereNode2 a (Node (Not formula1) False) (Node (Not formula2) False)) where
+    provaAux(insereNode2 a (Node (Not formula1) False) (Node (Not formula2) False)) where
         a = NodeIntermediario (Node (Not (And formula1 formula2)) True) e d
 
 -- v: a | b ==> v: a / v: b
 provaAux1 (NodeIntermediario (Node (Or formula1 formula2) False) e d) =
-    provaAux1(insereNode2 a (Node formula1 False) (Node formula2 False)) where
+    provaAux(insereNode2 a (Node formula1 False) (Node formula2 False)) where
         a = NodeIntermediario (Node (Or formula1 formula2) True) e d
 
 -- f: a | b ==> f: a ; f: b
 provaAux1 (NodeIntermediario (Node (Not (Or formula1 formula2)) False) e d) =
-    provaAux1(insereNode1 a1 (Node (Not formula2) False)) where
+    provaAux(insereNode1 a1 (Node (Not formula2) False)) where
         a1 =insereNode1 a (Node (Not formula1) False) where
             a = NodeIntermediario (Node (Not (Or formula1 formula2)) True) e d
 
 -- f: ~a ==> v: a
 provaAux1 (NodeIntermediario (Node (Not (Not formula1)) False) e d) =
-    provaAux1 (insereNode1 a (Node formula1 False)) where
+    provaAux (insereNode1 a (Node formula1 False)) where
         a = NodeIntermediario (Node (Not (Not formula1)) True) e d
 
 -- Se a fórmula for uma variável ou a negação de uma variável, só considero como processada e sigo em frente
-provaAux1 (NodeIntermediario (Node (Var var) False) e d) = provaAux1 (NodeIntermediario (Node (Var var) True) e d)
-provaAux1 (NodeIntermediario (Node (Not (Var var)) False) e d) = provaAux1 (NodeIntermediario (Node (Not (Var var)) True) e d)
+provaAux1 (NodeIntermediario (Node (Var var) False) e d) = provaAux (NodeIntermediario (Node (Var var) True) e d)
+provaAux1 (NodeIntermediario (Node (Not (Var var)) False) e d) = provaAux (NodeIntermediario (Node (Not (Var var)) True) e d)
 
 -- Se eu chamar a função para um nó que já foi processado, eu processo os seus ramos à esquerda ou direita
-provaAux1 (NodeIntermediario (Node formula True) e d) = NodeIntermediario (Node formula True) (provaAux1 e) (provaAux1 d)
+provaAux1 (NodeIntermediario (Node formula True) e d) = NodeIntermediario (Node formula True) (provaAux e) (provaAux d)
 
 -- Só chega aqui se for Null ou NodeFechado, ou seja, nada a ser feito para eles
 provaAux1 Null = Null
@@ -229,6 +229,7 @@ possuiNodeAberto (NodeIntermediario node e d) = possuiNodeAberto e || possuiNode
 printProva :: Formula -> IO()
 printProva formula = do
     putStrLn "\n\n######################"
+    putStrLn "\nNotação: + indica ramo à esquerda e ` indica ramo à direita\n\n"
     putStr "Árvore de prova/refutação da fórmula "
     printFormula formula
     putStr ": \n\n"
@@ -242,5 +243,3 @@ printProva formula = do
     putStr "\n"
     where
         arvoreProva = prova formula
-
-

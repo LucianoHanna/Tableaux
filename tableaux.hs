@@ -41,12 +41,18 @@ printFormula (Var variavel) = printVariable variavel
 
 printFormula formula = putStr(formulaToStr formula)
 
-printNode :: Node -> IO()
-printNode node = putStr(nodeToStr node)
-
 printArvore :: Arvore -> IO()
 printArvore a =
     printArvoreAux a 0
+
+printArvoreAux :: Arvore -> Int -> IO()
+printArvoreAux a nivelDesejado = do
+    if arvoreStrPossuiNoNotNull(arvoreNivelToStr a 0 nivelDesejado) False
+    then do
+        putStrLn(arvoreNivelToStr a 0 nivelDesejado)
+        printArvoreAux a (nivelDesejado + 1)
+    else
+        putStr""
 
 arvoreStrPossuiNoNotNull :: String -> Bool -> Bool
 arvoreStrPossuiNoNotNull (x:xs) haveNonParentese
@@ -60,15 +66,6 @@ isBracket :: Char -> Bool
 isBracket '[' = True
 isBracket ']' = True
 isBracket x = False
-
-printArvoreAux :: Arvore -> Int -> IO()
-printArvoreAux a nivelDesejado = do
-    if arvoreStrPossuiNoNotNull(arvoreNivelToStr a 0 nivelDesejado) False
-    then do
-        putStrLn(arvoreNivelToStr a 0 nivelDesejado)
-        printArvoreAux a (nivelDesejado + 1)
-    else
-        putStr""
 
 arvoreNivelToStr :: Arvore -> Int -> Int -> String
 arvoreNivelToStr (NodeIntermediario n e d) nivelAtual nivelDesejado
@@ -131,15 +128,6 @@ fechaNodesAbaixo NodeFechado = NodeFechado
 
 variavelEqual :: Variable -> Variable -> Bool
 variavelEqual (Name nome1) (Name nome2) = nome1 == nome2
-
-formulaEqual :: Formula -> Formula -> Bool
-formulaEqual (Var variavel1) (Var variavel2) = variavelEqual variavel1 variavel2
-formulaEqual (Not formula1) (Not formula2) = formulaEqual formula1 formula2
-formulaEqual (And formula1 formula2) (And formula3 formula4) = formulaEqual formula1 formula3 && formulaEqual formula2 formula4
-formulaEqual (Or formula1 formula2) (Or formula3 formula4) = formulaEqual formula1 formula3 && formulaEqual formula2 formula4
-formulaEqual (Implication formula1 formula2) (Implication formula3 formula4) = formulaEqual formula1 formula3 && formulaEqual formula2 formula4
-
-formulaEqual _ _= False
 
 -- verifica se é Var var ou (Not Var var)
 formulaIsSimple :: Formula -> Bool
@@ -205,8 +193,8 @@ provaAux1 Null = Null
 provaAux1 NodeFechado = NodeFechado
 
 contradiz :: Formula -> Formula -> Bool
-contradiz (Not (Var var1)) (Var var2) = formulaEqual (Var var1) (Var var2)
-contradiz (Var var2) (Not (Var var1)) = formulaEqual (Var var1) (Var var2)
+contradiz (Not (Var var1)) (Var var2) = variavelEqual var1 var2
+contradiz (Var var2) (Not (Var var1)) = variavelEqual var1 var2
 contradiz _ _ = False
 
 atualizaRamosFechados :: Arvore -> Arvore

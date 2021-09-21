@@ -1,5 +1,5 @@
 compile:
-	ghc tableaux.hs -o tableaux
+	ghc example.hs tableaux.hs -o example
 
 run:
 	ghc example.hs tableaux.hs -o example && ./example

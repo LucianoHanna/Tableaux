@@ -1,5 +1,3 @@
--- TODO: imprimir um ramo de cada vez
-
 module Tableaux where
 
 import Data.Typeable
@@ -225,6 +223,32 @@ possuiNodeAberto (NodeIntermediario node Null Null) = True
 possuiNodeAberto (NodeIntermediario node Null d) = possuiNodeAberto d
 possuiNodeAberto (NodeIntermediario node e Null) = possuiNodeAberto e
 possuiNodeAberto (NodeIntermediario node e d) = possuiNodeAberto e || possuiNodeAberto d
+possuiNodeAberto Null = False
+
+printFormulaContraProva :: Formula -> IO()
+printFormulaContraProva (Var var) = putStr ((formulaToStr (Var var)) ++ ": Verdadeiro\n")
+printFormulaContraProva (Not(Var var)) = putStr ((formulaToStr (Var var)) ++ ": Falso\n")
+
+printFormulas :: [Formula] -> IO()
+printFormulas (x:xs) = do
+    printFormulaContraProva x
+    printFormulas xs
+
+printFormulas [] = putStr ""
+
+printMotivoFalsificacao :: Arvore -> IO()
+printMotivoFalsificacao a = printFormulas (motivoFalsificacao a [])
+
+motivoFalsificacao :: Arvore -> [Formula] -> [Formula]
+motivoFalsificacao (NodeIntermediario (Node formula _) Null Null) formulas
+    | formulaIsSimple formula = formulas ++ [formula]
+    | otherwise = formulas
+
+motivoFalsificacao (NodeIntermediario (Node formula _) e d) formulas
+    | formulaIsSimple formula && possuiNodeAberto e = motivoFalsificacao e (formulas ++ [formula])
+    | formulaIsSimple formula && possuiNodeAberto d = motivoFalsificacao d (formulas ++ [formula])
+    | possuiNodeAberto e = motivoFalsificacao e formulas
+    | possuiNodeAberto d = motivoFalsificacao d formulas
 
 printProva :: Formula -> IO()
 printProva formula = do
@@ -236,8 +260,10 @@ printProva formula = do
     printArvore arvoreProva
     putStr "\n\n"
     if possuiNodeAberto arvoreProva
-    then
-        putStr "A fórmula é falsificável"
+    then do
+        putStr "A fórmula é falsificável\n"
+        putStr "\nContra-prova: \n"
+        printMotivoFalsificacao arvoreProva
     else
         putStr "A fórmula é uma tautologia"
     putStr "\n"

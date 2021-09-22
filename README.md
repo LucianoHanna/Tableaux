@@ -8,7 +8,7 @@ Programa para verificar se uma fórmula na lógica proposicional clássica é ta
 
 * `make compile` compila example.hs e gera executável ./example
 
-* ` make run` compila e executa example
+* `make run` compila e executa example
 
 ### Example
 

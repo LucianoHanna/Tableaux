@@ -1,7 +1,5 @@
 module Tableaux where
 
-import Data.Typeable
-
 data Variable = Name String
 
 -- Estrutura de dados para uma formula
@@ -12,8 +10,6 @@ data Formula =
     Or Formula Formula |
     Implication Formula Formula
 
-
--- Eu marco os Nodes como ramo fechado desde que todos os filhos dele estejam fechados
 data Node = Node {
     formula :: Formula,
     processed :: Bool
@@ -24,8 +20,9 @@ data Node = Node {
 -- para printar carácter indicando ramo fechado
 -- Null indica que não existe caminho por ali (por exemplo, p & q terá só um filho)
 -- Todas as folhas serão Null ou NodeFechado
--- É possível dizer que essa é uma árvore de prova caso todos os Nodes tenham sido processados (regra aplicada) e existe alguma Node que ramoFechado = False
--- E, é possível dizer que é uma árvore de refutação com regra semelhante à anterior porém com todos Nodes ramoFechado = True
+-- É possível dizer que essa é uma árvore de refutação (ou seja, a fórmula é falsificável) caso todos os Nodes tenham sido processados (regra aplicada) e existe algum ramo que, o nó intermediário de maior nivel no ramo tenha Null à esquerda e à direita, ou seja, existe um ramo que não está fechado
+-- E, é possível dizer que é uma árvore de prova com condição semelhante à anterior porém, com TODOS os nós intermediários de maior nivel no ramo com NodeFechado como filho, ou seja, todos os ramos estão fechados
+
 data Arvore =
     Null |
     NodeFechado |
@@ -128,10 +125,10 @@ variavelEqual :: Variable -> Variable -> Bool
 variavelEqual (Name nome1) (Name nome2) = nome1 == nome2
 
 -- verifica se é Var var ou (Not Var var)
-formulaIsSimple :: Formula -> Bool
-formulaIsSimple (Var var) = True
-formulaIsSimple (Not (Var var)) = True
-formulaIsSimple _ = False
+formulaIsAtomic :: Formula -> Bool
+formulaIsAtomic (Var var) = True
+formulaIsAtomic (Not (Var var)) = True
+formulaIsAtomic _ = False
 
 prova :: Formula -> Arvore
 prova formula = provaAux(NodeIntermediario (Node (Not formula) False) Null Null)
@@ -195,10 +192,12 @@ contradiz (Not (Var var1)) (Var var2) = variavelEqual var1 var2
 contradiz (Var var2) (Not (Var var1)) = variavelEqual var1 var2
 contradiz _ _ = False
 
+-- objetivo dessa função é encontrar nós com fórmula atômica e procurar contradição no filho à esquerda e à direita 
 atualizaRamosFechados :: Arvore -> Arvore
 
+-- buscaContradicao retorna a árvore atualizada com o ramo devidamente fechado caso tenha encontrado uma contradição
 atualizaRamosFechados (NodeIntermediario (Node formula processed) e d) 
-    | formulaIsSimple formula =
+    | formulaIsAtomic formula =
     NodeIntermediario (Node formula processed) (atualizaRamosFechados arvE) (atualizaRamosFechados arvD) where
         arvE = buscaContradicao formula e
         arvD = buscaContradicao formula d
@@ -208,10 +207,12 @@ atualizaRamosFechados Null = Null
 atualizaRamosFechados NodeFechado = NodeFechado
 
 buscaContradicao :: Formula -> Arvore -> Arvore
+-- Caso eu encontre algum nó com fórmula atomica que contradiz à fórmula atomica que ele "herda", então eu fecho todos os ramos que derivam dele
 buscaContradicao formula (NodeIntermediario (Node formula1 processed) e d) 
-    | formulaIsSimple formula1 && contradiz formula formula1 =
+    | formulaIsAtomic formula1 && contradiz formula formula1 =
         fechaNodesAbaixo (NodeIntermediario (Node formula1 processed) e d)
 
+-- Caso a fórmula não seja atomica, apenas prossegue
 buscaContradicao formula (NodeIntermediario node e d) = NodeIntermediario node (buscaContradicao formula e) (buscaContradicao formula d)
 
 buscaContradicao formula Null = Null
@@ -241,12 +242,12 @@ printMotivoFalsificacao a = printFormulas (motivoFalsificacao a [])
 
 motivoFalsificacao :: Arvore -> [Formula] -> [Formula]
 motivoFalsificacao (NodeIntermediario (Node formula _) Null Null) formulas
-    | formulaIsSimple formula = formulas ++ [formula]
+    | formulaIsAtomic formula = formulas ++ [formula]
     | otherwise = formulas
 
 motivoFalsificacao (NodeIntermediario (Node formula _) e d) formulas
-    | formulaIsSimple formula && possuiNodeAberto e = motivoFalsificacao e (formulas ++ [formula])
-    | formulaIsSimple formula && possuiNodeAberto d = motivoFalsificacao d (formulas ++ [formula])
+    | formulaIsAtomic formula && possuiNodeAberto e = motivoFalsificacao e (formulas ++ [formula])
+    | formulaIsAtomic formula && possuiNodeAberto d = motivoFalsificacao d (formulas ++ [formula])
     | possuiNodeAberto e = motivoFalsificacao e formulas
     | possuiNodeAberto d = motivoFalsificacao d formulas
 

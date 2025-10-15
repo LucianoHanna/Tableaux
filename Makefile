@@ -1,5 +1,5 @@
 compile:
-	ghc example.hs tableaux.hs -o example
+    docker run --rm -v $(PWD):/src -w /src haskell:latest ghc example.hs tableaux.hs -o example
 
 run:
-	ghc example.hs tableaux.hs -o example && ./example
+    docker run --rm -v $(PWD):/src -w /src haskell:latest sh -c "ghc example.hs tableaux.hs -o example && ./example"

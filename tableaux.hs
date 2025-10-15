@@ -84,15 +84,16 @@ variavelToStr :: Variable -> String
 variavelToStr(Name nome) = nome
 
 formulaToStr :: Formula -> String
-formulaToStr(Var variavel) = variavelToStr variavel
-formulaToStr(Not formula) = "~("++formulaToStr formula++")"
-formulaToStr(And formula1 formula2) = "("++formulaToStr formula1++" & " ++ formulaToStr formula2 ++ ")"
-formulaToStr(Or formula1 formula2) = "("++formulaToStr formula1++" | " ++ formulaToStr formula2 ++ ")"
-formulaToStr(Implication formula1 formula2) = "("++formulaToStr formula1++" -> " ++ formulaToStr formula2 ++ ")"
+formulaToStr (Var variavel) = variavelToStr variavel
+formulaToStr (Not (Var v)) = "￢" ++ variavelToStr v
+formulaToStr (Not formula) = "￢("++formulaToStr formula++")"
+formulaToStr (And formula1 formula2) = "("++formulaToStr formula1++" ∧ " ++ formulaToStr formula2 ++ ")"
+formulaToStr (Or formula1 formula2) = "("++formulaToStr formula1++" ∨ " ++ formulaToStr formula2 ++ ")"
+formulaToStr (Implication formula1 formula2) = "("++formulaToStr formula1++" → " ++ formulaToStr formula2 ++ ")"
 
 
 nodeToStr :: Node -> String
-nodeToStr(Node formula p) = formulaToStr formula
+nodeToStr(Node formula _) = formulaToStr formula
 
 arvoreNivelToStrAux :: Arvore -> String
 arvoreNivelToStrAux (NodeIntermediario node _ _) = nodeToStr node
@@ -131,7 +132,8 @@ formulaIsAtomic (Not (Var var)) = True
 formulaIsAtomic _ = False
 
 prova :: Formula -> Arvore
-prova formula = provaAux(NodeIntermediario (Node (Not formula) False) Null Null)
+prova formula = provaAux(NodeIntermediario (Node formula False) Null Null)
+
 
 provaAux :: Arvore -> Arvore
 provaAux a = atualizaRamosFechados (provaAux1 a)
@@ -262,11 +264,20 @@ printProva formula = do
     putStr "\n\n"
     if possuiNodeAberto arvoreProva
     then do
-        putStr "A fórmula é falsificável\n"
+        putStr "A fórmula NÃO é consequência lógica das hipóteses (é falsificável)\n"
         putStr "\nContra-prova: \n"
         printMotivoFalsificacao arvoreProva
     else
-        putStr "A fórmula é uma tautologia"
+        putStr "A fórmula é consequência lógica das hipóteses (todo ramo fecha)"
     putStr "\n"
     where
         arvoreProva = prova formula
+
+provaSe :: [Formula] -> Formula -> IO ()
+provaSe hipoteses conclusao =
+    printProva (And (juntaHipoteses hipoteses) (Not conclusao))
+
+juntaHipoteses :: [Formula] -> Formula
+juntaHipoteses [] = error "Sem hipóteses"
+juntaHipoteses [f] = f
+juntaHipoteses (f:fs) = And f (juntaHipoteses fs)

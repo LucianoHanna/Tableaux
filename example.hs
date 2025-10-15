@@ -2,24 +2,11 @@ import Tableaux
 
 -- Variáveis definidas anteriormente por motivo de legibilidade
 
-a :: Formula
-a = Var $ Name "a"
-
-b :: Formula
-b = Var $ Name "b"
-
-p :: Formula
-p = Var $ Name "p"
-
-q :: Formula
-q = Var $ Name "q"
-
-r :: Formula
-r = Var $ Name "r"
-
--- printProva :: Formula -> IO()
--- Uso: printProva(And (Var $ Name "a") (Var $ Name "b")) exibe a árvore de prova/refutação de "a & b"
-
+a = Var $ Name "A"
+b = Var $ Name "B"
+c = Var $ Name "C"
+d = Var $ Name "D"
+e = Var $ Name "E"
 
 -- Uso de fórmulas: 
 -- `Var $ Name "a"` representa variável com nome "a"
@@ -29,6 +16,6 @@ r = Var $ Name "r"
 -- Implication formula1 formula2 representa (formula1 -> formula2)
 
 main = do
-    printProva (Implication (Or (p) (And q r)) (And (Or p q) (Or p r)))
-    printProva (Implication a (Implication a (Implication b a)))
-    printProva (Implication b (And a (Or b a)))
+    let hipoteses = [Implication (Not d) (Or (Not a) (Not c)), Implication (Or b e) a]
+    let conclusao = Implication (Or a b) (Implication c d)
+    provaSe hipoteses conclusao
